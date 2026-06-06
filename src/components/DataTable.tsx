@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef } from 'react';
 import { ArrowUpDown, Download, Upload } from 'lucide-react';
 import { useDashboardStore } from '../store/useDashboardStore.js';
 import { cn } from '../lib/utils.js';
@@ -11,7 +11,7 @@ export function DataTable() {
   const [sortField, setSortField] = useState<SortField>('nodeId');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const [activeTab, setActiveTab] = useState<'corrosion' | 'tide'>('corrosion');
-  const fileInputRef = useState<HTMLInputElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -97,13 +97,13 @@ export function DataTable() {
         <div className="flex items-center gap-2">
           <input
             type="file"
-            ref={fileInputRef[0] as any}
+            ref={fileInputRef}
             onChange={handleFileChange}
             accept=".csv"
             className="hidden"
           />
           <button
-            onClick={() => fileInputRef[0]?.click?.()}
+            onClick={() => fileInputRef.current?.click()}
             className="flex items-center gap-2 px-4 py-2 bg-slate-700/50 hover:bg-slate-600/50 border border-slate-600/50 rounded-lg text-sm text-slate-300 transition-all hover:scale-[1.02]"
           >
             <Upload className="w-4 h-4" />
@@ -130,7 +130,7 @@ export function DataTable() {
             <span>
               {importResult.success
                 ? `成功导入 ${importResult.imported} 条记录`
-                : `导入失败: ${importResult.errors[0]}`}
+                : `导入失败`}
             </span>
             <button
               onClick={clearImportResult}
@@ -139,9 +139,28 @@ export function DataTable() {
               关闭
             </button>
           </div>
-          {importResult.errors.length > 0 && importResult.success && (
-            <div className="mt-2 text-xs text-yellow-400">
-              警告: {importResult.errors.length} 条记录被跳过
+          {importResult.errors.length > 0 && (
+            <div className="mt-2">
+              <div className={cn(
+              "text-xs",
+              importResult.success ? "text-yellow-400" : "text-red-400"
+            )}>
+                {importResult.success
+                  ? `警告: ${importResult.errors.length} 条记录被跳过:`
+                  : `错误: ${importResult.errors.length} 条:`}
+              </div>
+              <ul className="mt-1 text-xs list-disc list-inside space-y-0.5">
+                {importResult.errors.slice(0, 10).map((err, idx) => (
+                  <li key={idx} className={cn(
+                    importResult.success ? "text-yellow-300" : "text-red-300"
+                  )}>
+                    {err}
+                  </li>
+                ))}
+                {importResult.errors.length > 10 && (
+                  <li className="text-slate-400">... 还有 {importResult.errors.length - 10} 条更多错误</li>
+                )}
+              </ul>
             </div>
           )}
         </div>

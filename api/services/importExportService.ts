@@ -79,7 +79,9 @@ export class ImportExportService {
   private normalizeRow(row: Record<string, string>): Record<string, string> {
     const normalized: Record<string, string> = {};
     Object.keys(row).forEach(key => {
-      const camelKey = key.trim().toLowerCase().replace(/[_\s-]([a-z])/g, (_, c) => c.toUpperCase()).replace(/^([a-z])/, (_, c) => c);
+      const trimmed = key.trim();
+      let camelKey = trimmed.replace(/[_\s-]([a-zA-Z])/g, (_, c) => c.toUpperCase());
+      camelKey = camelKey.charAt(0).toLowerCase() + camelKey.slice(1);
       normalized[camelKey] = row[key].trim();
     });
     return normalized;
@@ -89,6 +91,7 @@ export class ImportExportService {
     if (!row.nodeId) return { valid: false, error: `第${lineNum}行: 缺少节点号` };
     if (!validNodeIds.has(row.nodeId)) return { valid: false, error: `第${lineNum}行: 无效的节点号 ${row.nodeId}` };
     if (!row.sampleTime) return { valid: false, error: `第${lineNum}行: 缺少采样时间` };
+    if (!this.isValidSampleTime(row.sampleTime)) return { valid: false, error: `第${lineNum}行: 采样时间格式无效` };
     if (!row.corrosionPotential || isNaN(parseFloat(row.corrosionPotential))) {
       return { valid: false, error: `第${lineNum}行: 腐蚀电位无效` };
     }
@@ -96,6 +99,13 @@ export class ImportExportService {
       return { valid: false, error: `第${lineNum}行: 潮位无效` };
     }
     return { valid: true };
+  }
+
+  private isValidSampleTime(timeStr: string): boolean {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(timeStr)) return true;
+    if (/^\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}$/.test(timeStr)) return true;
+    const date = new Date(timeStr);
+    return !isNaN(date.getTime());
   }
 
   private formatSampleTime(timeStr: string): string {
